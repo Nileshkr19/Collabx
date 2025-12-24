@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+  MANAGER
+}
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  FILE
+}
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+enum NotificationType {
+  TASK_ASSIGNED
+  TASK_UPDATED
+  MESSAGE_MENTION
+  TASK_DUE
+  MEASSAGE
+  TEAM_INVITE
+  SYSTEM
+}
+
+model User {
+  id String @id @default(uuid()) 
+  name String
+  email String @unique
+  password String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teams TeamMember[]
+  messages Message[]
+  assignedTasks Task[] @relation("AssignedTasks")
+  createdTasks Task[] @relation("CreatedTasks")
+  notifications Notification[]
+
+
+}
+
+model Team {
+  id String @id @default(uuid())
+  name String
+  description String?
+  avatar String?
+  banner String?
+  isPrivate Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members TeamMember[]
+  messages Message[]
+  tasks Task[]
+
+}
+
+model TeamMember {
+  id String @id @default(uuid())
+  userId String
+  teamId String
+  role Role @default(MEMBER)
+  joinedAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id])
+  team Team @relation(fields: [teamId], references: [id])
+
+  @@unique([userId, teamId])
+}
+
+model Message {
+  id String @id @default(uuid())
+  content String?
+  fileType String?
+  fileUrl String?
+  type MessageType @default(TEXT)
+  senderId String
+  teamId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sender User @relation(fields: [senderId], references: [id])
+  team Team @relation(fields: [teamId], references: [id])
+}
+
+model Task {
+  id String @id @default(uuid())
+  title String
+  description String?
+  status TaskStatus @default(PENDING)
+  deadline DateTime?
+  assigneeId String?
+  teamId String
+  createdById String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  team Team @relation(fields: [teamId], references: [id])
+  assignee    User?      @relation("AssignedTasks", fields: [assigneeId], references: [id])
+  createdBy   User       @relation("CreatedTasks", fields: [createdById], references: [id])
+}
+
+model Notification {
+  id String @id @default(uuid())
+  userId String
+  content String
+  type NotificationType
+  isRead Boolean @default(false)
+  refrenceId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
